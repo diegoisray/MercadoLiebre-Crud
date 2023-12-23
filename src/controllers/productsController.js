@@ -4,6 +4,7 @@ const { get } = require('http');
 const path = require('path');
 const { uuid } = require('uuidv4');
 
+
 const productsFilePath = path.join(__dirname, '../data/productsDataBase.json');
 
 const getJson = () =>{
@@ -39,22 +40,22 @@ const controller = {
 	
 	// Create -  Method to store
 	store: (req, res) =>{
-		const productJson = getJson("products")
-
-		const {id,name,price,discount,category,description,image} = req.body
+		const file = req.file;
+		const products = getJson()
+		const {name,price,discount,category,description,image} = req.body
+		const id = products[products.length -1].id +1 ;
 		const newObjet = {
-			id: uuid(),
+			id: +id,
 			name,
 			price: +price,
 			discount: +discount,
 			category,
 			description,
-			image
+			image: file ? file.filename : "default.webp",
 		}
-		let newArchivo = [...productJson, newObjet]
-		const json = JSON.stringify(newArchivo);
+		products.push(newObjet)
+		const json = JSON.stringify(products);
 		fs.writeFileSync((productsFilePath),json, "utf-8")
-		productJson.push(newObjet)
 		res.redirect("/products")
 	},
 
@@ -67,6 +68,12 @@ const controller = {
 	},
 	// Update - Method to update
 	update: (req, res) => {
+		const images = []
+      if(req.files){
+        files.forEach(element => {
+          images.push(element.filename)
+        });
+      }
 		const {id} = req.params;
 		const {name,price,discount,category,description,image} = req.body;
 		const products = getJson()
@@ -79,7 +86,7 @@ const controller = {
 					discount: +discount,
 					category,
 					description: description.trim(),
-					image: image ? image : product.image
+					image: images.length > 0  ? images : product.image
 				}
 			}
 			return product	
@@ -93,8 +100,14 @@ const controller = {
 	destroy : (req, res) => {
 		const {id} = req.params;
         const products = getJson("products");
+		const product = products.find(producto => producto.id == id)
 		const newArray = products.filter(product => product.id != id);
 		const json = JSON.stringify(newArray);
+		
+		fs.unlink(`./public/images/products/${product.image}`, (err)=>{
+			if(err) throw err;
+			console.log(`borre el archivo ${product.image}`)
+		})
 		fs.writeFileSync((productsFilePath),json, "utf-8")
 		res.redirect("/products")
 	}
